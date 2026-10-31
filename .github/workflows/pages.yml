@@ -1,110 +1,78 @@
 name: Deploy Zynora Website
 
 on:
-push:
-branches:
-- main
-workflow_dispatch:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
 
 permissions:
-contents: read
-pages: write
-id-token: write
+  contents: read
+  pages: write
+  id-token: write
 
 concurrency:
-group: pages
-cancel-in-progress: true
+  group: pages
+  cancel-in-progress: true
 
 jobs:
-build:
-runs-on: ubuntu-latest
+  build:
+    runs-on: ubuntu-latest
 
-steps:
-  - name: Checkout repository
-    uses: actions/checkout@v4
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-  - name: Prepare website
-    run: |
-      set -euo pipefail
+      - name: Prepare website
+        run: |
+          set -euo pipefail
 
-      mkdir -p _site
+          mkdir -p _site
 
-      cp index.html _site/
-      cp script.js _site/
-      cp style.css _site/
+          cp index.html _site/
+          cp script.js _site/
+          cp style.css _site/
 
-      python - <<'PY'
-      import json
-      from pathlib import Path
+          printf '%s\n' 'window.ZYNORA_CONFIG = {"API_BASE_URL":"https://psy-loophs-zynora-proxy.hf.space/proxy"};' > _site/config.js
 
-      config = {
-          "API_BASE_URL": "https://psy-loophs-zynora-proxy.hf.space/proxy"
-      }
+          touch _site/.nojekyll
 
-      Path("_site/config.js").write_text(
-          "window.ZYNORA_CONFIG = "
-          + json.dumps(config)
-          + ";\n",
-          encoding="utf-8"
-      )
+      - name: Verify deployment files
+        run: |
+          set -euo pipefail
 
-      print("SUCCESS: Public configuration generated without secrets")
-      PY
+          test -s _site/index.html
+          test -s _site/script.js
+          test -s _site/style.css
+          test -s _site/config.js
 
-      touch _site/.nojekyll
+          if grep -q 'HF_TOKEN' _site/config.js; then
+            echo "ERROR: HF_TOKEN must not be exposed"
+            exit 1
+          fi
 
-  - name: Verify deployment files
-    run: |
-      set -euo pipefail
+          echo "SUCCESS: All files verified"
+          echo "SUCCESS: No HF_TOKEN exposed"
 
-      test -s _site/index.html
-      test -s _site/script.js
-      test -s _site/style.css
-      test -s _site/config.js
+          ls -lah _site/
 
-      python - <<'PY'
-      import json
-      from pathlib import Path
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
 
-      content = Path("_site/config.js").read_text().strip()
-      prefix = "window.ZYNORA_CONFIG = "
+      - name: Upload website
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./_site
 
-      if not content.startswith(prefix) or not content.endswith(";"):
-          raise SystemExit("ERROR: Invalid config.js")
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
 
-      config = json.loads(content[len(prefix):-1])
+    runs-on: ubuntu-latest
+    needs: build
 
-      expected_url = "https://psy-loophs-zynora-proxy.hf.space/proxy"
-
-      if config.get("API_BASE_URL") != expected_url:
-          raise SystemExit("ERROR: Unexpected API_BASE_URL")
-
-      if "HF_TOKEN" in config:
-          raise SystemExit("ERROR: HF_TOKEN must not be exposed")
-
-      print("SUCCESS: Configuration verified")
-      print("SUCCESS: No HF_TOKEN included")
-      PY
-
-      ls -lah _site/
-
-  - name: Configure Pages
-    uses: actions/configure-pages@v5
-
-  - name: Upload website
-    uses: actions/upload-pages-artifact@v3
-    with:
-      path: ./_site
-
-deploy:
-environment:
-name: github-pages
-url: ${{ steps.deployment.outputs.page_url }}
-
-runs-on: ubuntu-latest
-needs: build
-
-steps:
-  - name: Deploy to GitHub Pages
-    id: deployment
-    uses: actions/deploy-pages@v4
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
