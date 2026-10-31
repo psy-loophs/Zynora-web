@@ -74,7 +74,9 @@ steps:
 
       config = json.loads(content[len(prefix):-1])
 
-      if config.get("API_BASE_URL") != "https://psy-loophs-zynora-proxy.hf.space/proxy":
+      expected_url = "https://psy-loophs-zynora-proxy.hf.space/proxy"
+
+      if config.get("API_BASE_URL") != expected_url:
           raise SystemExit("ERROR: Unexpected API_BASE_URL")
 
       if "HF_TOKEN" in config:
