@@ -32,9 +32,18 @@ jobs:
           import json
           import os
 
+          token = os.environ.get("HF_TOKEN", "").strip()
+          space_url = os.environ.get("HF_SPACE_URL", "").strip()
+
+          if not token:
+              raise SystemExit("ERROR: HF_TOKEN secret is missing or empty")
+
+          if not space_url:
+              raise SystemExit("ERROR: HF_SPACE_URL secret is missing or empty")
+
           config = {
-              "API_BASE_URL": os.environ["HF_SPACE_URL"].rstrip("/"),
-              "HF_TOKEN": os.environ["HF_TOKEN"]
+              "API_BASE_URL": space_url.rstrip("/"),
+              "HF_TOKEN": token
           }
 
           with open("config.js", "w", encoding="utf-8") as file:
@@ -43,7 +52,28 @@ jobs:
                   + json.dumps(config)
                   + ";\n"
               )
+
+          print("SUCCESS: config.js generated")
           PY
+
+      - name: Verify frontend configuration
+        run: |
+          if [ ! -f config.js ]; then
+            echo "ERROR: config.js was not generated"
+            exit 1
+          fi
+
+          if ! grep -q '"API_BASE_URL":"https://' config.js; then
+            echo "ERROR: API_BASE_URL is missing or invalid"
+            exit 1
+          fi
+
+          if ! grep -q '"HF_TOKEN":"' config.js; then
+            echo "ERROR: HF_TOKEN is missing"
+            exit 1
+          fi
+
+          echo "SUCCESS: Both configuration fields are present"
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
@@ -65,3 +95,16 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+### After saving
+
+1. Commit the changes to `main`.
+2. Open the **Actions** tab.
+3. Wait for both `build` and `deploy` to succeed.
+4. Open this address:
+
+   https://psy-loophs.github.io/Zynora-web/config.js
+
+You should now see the generated configuration.
+
+**Security reminder:** This configuration contains your Hugging Face token. Anyone can view it because your GitHub Pages website is public. A Read token reduces permissions but does not prevent exposure.
