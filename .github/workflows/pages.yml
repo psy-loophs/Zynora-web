@@ -96,15 +96,3 @@ jobs:
         id: deployment
         uses: actions/deploy-pages@v4
 
-### After saving
-
-1. Commit the changes to `main`.
-2. Open the **Actions** tab.
-3. Wait for both `build` and `deploy` to succeed.
-4. Open this address:
-
-   https://psy-loophs.github.io/Zynora-web/config.js
-
-You should now see the generated configuration.
-
-**Security reminder:** This configuration contains your Hugging Face token. Anyone can view it because your GitHub Pages website is public. A Read token reduces permissions but does not prevent exposure.
