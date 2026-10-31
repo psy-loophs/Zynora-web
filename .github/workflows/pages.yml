@@ -1,127 +1,108 @@
 name: Deploy Zynora Website
 
 on:
-  push:
-    branches:
-      - main
-  workflow_dispatch:
+push:
+branches:
+- main
+workflow_dispatch:
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+contents: read
+pages: write
+id-token: write
 
 concurrency:
-  group: pages
-  cancel-in-progress: true
+group: pages
+cancel-in-progress: true
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
+build:
+runs-on: ubuntu-latest
 
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+steps:
+  - name: Checkout repository
+    uses: actions/checkout@v4
 
-      - name: Prepare website
-        env:
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
-          HF_SPACE_URL: ${{ secrets.HF_SPACE_URL }}
-        run: |
-          set -euo pipefail
+  - name: Prepare website
+    run: |
+      set -euo pipefail
 
-          mkdir -p _site
+      mkdir -p _site
 
-          cp index.html _site/
-          cp script.js _site/
-          cp style.css _site/
+      cp index.html _site/
+      cp script.js _site/
+      cp style.css _site/
 
-          python - <<'PY'
-          import json
-          import os
-          from urllib.parse import urlsplit
+      python - <<'PY'
+      import json
+      from pathlib import Path
 
-          token = os.environ.get("HF_TOKEN", "").strip()
-          space_url = os.environ.get("HF_SPACE_URL", "").strip()
+      config = {
+          "API_BASE_URL": "https://psy-loophs-zynora-proxy.hf.space/proxy"
+      }
 
-          if not token:
-              raise SystemExit("ERROR: HF_TOKEN is missing")
+      Path("_site/config.js").write_text(
+          "window.ZYNORA_CONFIG = "
+          + json.dumps(config)
+          + ";\n",
+          encoding="utf-8"
+      )
 
-          if not space_url:
-              raise SystemExit("ERROR: HF_SPACE_URL is missing")
+      print("SUCCESS: Public configuration generated without secrets")
+      PY
 
-          parsed = urlsplit(space_url)
+      touch _site/.nojekyll
 
-          if parsed.scheme != "https" or not parsed.netloc:
-              raise SystemExit("ERROR: Invalid HF_SPACE_URL")
+  - name: Verify deployment files
+    run: |
+      set -euo pipefail
 
-          config = {
-              "API_BASE_URL": space_url.rstrip("/"),
-              "HF_TOKEN": token
-          }
+      test -s _site/index.html
+      test -s _site/script.js
+      test -s _site/style.css
+      test -s _site/config.js
 
-          with open("_site/config.js", "w", encoding="utf-8") as file:
-              file.write(
-                  "window.ZYNORA_CONFIG = "
-                  + json.dumps(config)
-                  + ";\n"
-              )
+      python - <<'PY'
+      import json
+      from pathlib import Path
 
-          print("SUCCESS: config.js generated")
-          PY
+      content = Path("_site/config.js").read_text().strip()
+      prefix = "window.ZYNORA_CONFIG = "
 
-      - name: Verify deployment files
-        run: |
-          set -euo pipefail
+      if not content.startswith(prefix) or not content.endswith(";"):
+          raise SystemExit("ERROR: Invalid config.js")
 
-          test -s _site/index.html
-          test -s _site/script.js
-          test -s _site/style.css
-          test -s _site/config.js
+      config = json.loads(content[len(prefix):-1])
 
-          python - <<'PY'
-          import json
-          from pathlib import Path
+      if config.get("API_BASE_URL") != "https://psy-loophs-zynora-proxy.hf.space/proxy":
+          raise SystemExit("ERROR: Unexpected API_BASE_URL")
 
-          content = Path("_site/config.js").read_text().strip()
-          prefix = "window.ZYNORA_CONFIG = "
+      if "HF_TOKEN" in config:
+          raise SystemExit("ERROR: HF_TOKEN must not be exposed")
 
-          if not content.startswith(prefix) or not content.endswith(";"):
-              raise SystemExit("ERROR: Invalid config.js")
+      print("SUCCESS: Configuration verified")
+      print("SUCCESS: No HF_TOKEN included")
+      PY
 
-          config = json.loads(content[len(prefix):-1])
+      ls -lah _site/
 
-          if not config.get("API_BASE_URL", "").startswith("https://"):
-              raise SystemExit("ERROR: Invalid API_BASE_URL")
+  - name: Configure Pages
+    uses: actions/configure-pages@v5
 
-          if not config.get("HF_TOKEN"):
-              raise SystemExit("ERROR: HF_TOKEN is missing")
+  - name: Upload website
+    uses: actions/upload-pages-artifact@v3
+    with:
+      path: ./_site
 
-          print("SUCCESS: Configuration verified")
-          print("SUCCESS: All deployment files verified")
-          PY
+deploy:
+environment:
+name: github-pages
+url: ${{ steps.deployment.outputs.page_url }}
 
-          touch _site/.nojekyll
+runs-on: ubuntu-latest
+needs: build
 
-          ls -lah _site/
-
-      - name: Configure Pages
-        uses: actions/configure-pages@v5
-
-      - name: Upload website
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: ./_site
-
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-
-    runs-on: ubuntu-latest
-    needs: build
-
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+steps:
+  - name: Deploy to GitHub Pages
+    id: deployment
+    uses: actions/deploy-pages@v4
