@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0b1020">
+    <title>Zynora | Guess My Number</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="config.js"></script>
+    <script src="script.js" defer></script>
+</head>
+<body>
+    <header class="navbar">
+        <a class="logo" href="./">Zynora<span>.</span></a>
+        <span class="badge">NUMBER GAME</span>
+    </header>
+
+    <main class="container">
+        <section class="hero">
+            <p class="eyebrow">THINK · GUESS · WIN</p>
+            <h1>Guess My <span>Number</span></h1>
+            <p class="subtitle">
+                I'm thinking of a number between 1 and 100.
+                Can you find it?
+            </p>
+        </section>
+
+        <section class="game-card">
+            <div class="game-top">
+                <span class="game-label">YOUR CHALLENGE</span>
+                <span id="game-status" class="status">Ready to play</span>
+            </div>
+
+            <div class="number-range">
+                <div>
+                    <span class="range-label">MINIMUM</span>
+                    <strong>01</strong>
+                </div>
+                <div class="range-divider"></div>
+                <div>
+                    <span class="range-label">MAXIMUM</span>
+                    <strong>100</strong>
+                </div>
+            </div>
+
+            <form id="guess-form">
+                <label for="guess-input">Enter your guess</label>
+                <div class="input-row">
+                    <input
+                        id="guess-input"
+                        type="number"
+                        min="1"
+                        max="100"
+                        placeholder="e.g. 42"
+                        required
+                        disabled
+                    >
+                    <button id="guess-button" type="submit" disabled>
+                        Guess
+                    </button>
+                </div>
+            </form>
+
+            <div id="message" class="message" aria-live="polite">
+                Press Start Game when you're ready.
+            </div>
+
+            <div class="stats">
+                <div class="stat-box">
+                    <span>ATTEMPTS</span>
+                    <strong id="attempts">0</strong>
+                </div>
+                <div class="stat-box">
+                    <span>RANGE</span>
+                    <strong>1–100</strong>
+                </div>
+            </div>
+
+            <button id="start-button" class="start-button" type="button">
+                Start Game
+            </button>
+
+            <p id="connection-status" class="connection-status">
+                Connecting to game server...
+            </p>
+        </section>
+
+        <footer>
+            <p>Made for curious minds.</p>
+            <p>© <span id="year"></span> Zynora</p>
+        </footer>
+    </main>
+</body>
+</html>
