@@ -63,12 +63,12 @@ jobs:
             exit 1
           fi
 
-          if ! grep -q '"API_BASE_URL":"https://' config.js; then
+          if ! grep -Eq '"API_BASE_URL"[[:space:]]*:[[:space:]]*"https://' config.js; then
             echo "ERROR: API_BASE_URL is missing or invalid"
             exit 1
           fi
 
-          if ! grep -q '"HF_TOKEN":"' config.js; then
+          if ! grep -Eq '"HF_TOKEN"[[:space:]]*:[[:space:]]*"[^"]+"' config.js; then
             echo "ERROR: HF_TOKEN is missing"
             exit 1
           fi
@@ -95,4 +95,3 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
-
