@@ -30,10 +30,9 @@ jobs:
           mkdir -p _site
 
           cp index.html _site/
+          cp api.js _site/
           cp script.js _site/
           cp style.css _site/
-
-          printf '%s\n' 'window.ZYNORA_CONFIG = {"API_BASE_URL":"https://psy-loophs-zynora-proxy.hf.space/proxy"};' > _site/config.js
 
           touch _site/.nojekyll
 
@@ -42,11 +41,11 @@ jobs:
           set -euo pipefail
 
           test -s _site/index.html
+          test -s _site/api.js
           test -s _site/script.js
           test -s _site/style.css
-          test -s _site/config.js
 
-          if grep -q 'HF_TOKEN' _site/config.js; then
+          if grep -q 'HF_TOKEN' _site/api.js; then
             echo "ERROR: HF_TOKEN must not be exposed"
             exit 1
           fi
