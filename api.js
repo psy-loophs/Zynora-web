@@ -1,3 +1,4 @@
+
 (() => {
     const API_BASE_URL = "https://psy-loophs-zynora-proxy.hf.space/proxy".replace(/\/+$/, "");
 
